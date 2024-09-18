@@ -27,7 +27,6 @@ def pic_mom_read_2d(data, nproc, nproc_i, nproc_j, fname, swap_endian=False, dou
  
   flist = glob.glob(fname)
   flist.sort()  
-  print(flist)
   
   if not flist:
     if not silent:
@@ -45,47 +44,37 @@ def pic_mom_read_2d(data, nproc, nproc_i, nproc_j, fname, swap_endian=False, dou
   for ilist in range(0, len(flist), nproc):
     for irank in range(nproc):
       #print(flist[irank + ilist])
-      filename = flist[irank + ilist]   # 0002000_ey_rank=0000.dat,...
-      with open(filename, 'rb') as f:   # f = 0002000_ey_rank=0000.dat
+      fname = flist[irank + ilist]   
+      with open(fname, 'rb') as f:   
         if not silent:
           print('rank=', irank)
-          print(ilist // nproc, 'Reading......', filename)
-      
-          #rank= 0
-          #0 Reading...... 0002000_ey_rank=0000.dat 
-        
-        domainfname = os.path.join(flist[irank + ilist].split('_')[0] + '_domain_rank=' + str(irank).zfill(4) + '.dat')
+          print(ilist // nproc, 'Reading......', fname)
+        dfname = os.path.join(flist[irank + ilist].split('_')[0] + '_domain_rank=' + str(irank).zfill(4) + '.dat')
         # Read domain information
-        with open(domainfname,'rb') as domainf:   # domainf = 0002000_domain_rank=0000.dat
-          tmp_b = domainf.read()                  #これはバイナリーデータ<class 'bytes'>
+        with open(dfname,'rb') as d:   
+          tmp_d = d.read()                 
           
         #intリストにする
-        tmp = np.frombuffer(tmp_b,dtype=np.int8)
-        tmp_str = tmp_b.decode().strip()
+        tmp = np.frombuffer(tmp_d,dtype=np.int8)
+        tmp_str = tmp_d.decode().strip()
         tmp_list = tmp_str.split()
         tmp = [int(num) for num in tmp_list]
         nxg, nyg, nxs, nxe, nys, nye = tmp
-      #  tmp = [721, 96, 0, 95, 0, 31]     
-
+     
       # Allocate data array (resize if needed)
-        if irank == 0 and ilist == 0:                     #一番最初のループで全boxサイズのdata作る
+        if irank == 0 and ilist == 0:                    
             dtype = 'float64' if double else 'float32'      
             data = np.zeros((nyg, nxg), dtype=dtype)   
-          # data.shape = (721, 96)
         
     # Read data chunk    
-        tmp_rank = np.fromfile(f, dtype=dtype, count=(nxe - nxs + 1) * (nye - nys + 1) )  #irankのdomainサイズ
-        tmp_arr = tmp_rank.reshape((nxe - nxs + 1, nye - nys + 1),order='F') .T  
+        tmp_rank = np.fromfile(f, dtype=dtype) 
+        tmp_arr = tmp_rank[1:-1].reshape((nxe - nxs + 1, nye - nys + 1),order='F') .T  
       
       # Store data chunk in main array
-      # data[nxs:nxe+1, nys:nye+1] = tmp_arr
       data[nys:nye+1, nxs:nxe+1] = tmp_arr
       
-        
     savedir ='../mom/'
     np.save(os.path.join(savedir+flist[irank + ilist].split('_')[0]+'_ey.npy'),data)
-    #np.savetxt('mom_ey.dat',data,delimiter=' ')
-        
 
 def pic_mom_read(param1, param2, param3, param4, param5, swap_endian, double, silent):
   """
@@ -98,4 +87,3 @@ def pic_mom_read(param1, param2, param3, param4, param5, swap_endian, double, si
 # Example usage (assuming param1 to param5 are appropriately defined arrays)
 
 pic_mom_read("_", 12, 3, 4, "0002000_ey_rank=*.dat",False, False,False)
-
