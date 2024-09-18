@@ -9,8 +9,8 @@ def pic_mom_read_2d(data, nproc, nproc_i, nproc_j, fname, swap_endian=False, dou
   Args:
       data: Array to store the data (will be resized if needed)      => 返す配列を用意
       nproc: Total number of processes                               => 24
-      nproc_i: Number of processes in i-dimension                    => 4
-      nproc_j: Number of processes in j-dimension                    => 6
+      nproc_i: Number of processes in i-dimension                    => 4(y)
+      nproc_j: Number of processes in j-dimension                    => 6(x)
       pat: Pattern for file search                                   => 正規表現とかで全部読み込むパターン "0000100_bx_rank=*.dat"
       swap_endian: Whether to swap endianness (default: False)       
       double: Whether to use double precision (default: False)       
@@ -75,14 +75,14 @@ def pic_mom_read_2d(data, nproc, nproc_i, nproc_j, fname, swap_endian=False, dou
         
     # Read data chunk    
         tmp_rank = np.fromfile(f, dtype=dtype, count=(nxe - nxs + 1) * (nye - nys + 1) )  #irankのdomainサイズ
-        tmp_arr = tmp_rank.reshape((nxe - nxs + 1, nye - nys + 1))   
+        tmp_arr = tmp_rank.reshape((nxe - nxs + 1, nye - nys + 1),order='F')   
       
       # Store data chunk in main array
       data[nxs:nxe+1, nys:nye+1] = tmp_arr
       
         
     savedir ='../mom/'
-    np.save(os.path.join(savedir+flist[irank + ilist].split('_')[0]+'_bx.npy'),data)
+    np.save(os.path.join(savedir+flist[irank + ilist].split('_')[0]+'_ey.npy'),data)
     #np.savetxt('mom_bx.dat',data,delimiter=' ')
         
 
@@ -96,4 +96,4 @@ def pic_mom_read(param1, param2, param3, param4, param5, swap_endian, double, si
 
 # Example usage (assuming param1 to param5 are appropriately defined arrays)
 
-pic_mom_read("_", 24, 4, 6, "0003300_bx_rank=*.dat",False, False,False)
+pic_mom_read("_", 12, 4, 3, "0002000_ey_rank=*.dat",False, False,False)
