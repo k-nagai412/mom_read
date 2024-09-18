@@ -8,10 +8,10 @@ def pic_mom_read_2d(data, nproc, nproc_i, nproc_j, fname, swap_endian=False, dou
   Reads MPI-parallelized simulation data
   Args:
       data: Array to store the data (will be resized if needed)      => 返す配列を用意
-      nproc: Total number of processes                               => 24
-      nproc_i: Number of processes in i-dimension                    => 4(y)
-      nproc_j: Number of processes in j-dimension                    => 6(x)
-      pat: Pattern for file search                                   => 正規表現とかで全部読み込むパターン "0000100_bx_rank=*.dat"
+      nproc: Total number of processes                               => 12
+      nproc_i: Number of processes in i-dimension                    => 3(y)
+      nproc_j: Number of processes in j-dimension                    => 4(x)
+      pat: Pattern for file search                                   => 正規表現とかで全部読み込むパターン "0002000_ey_rank=*.dat"
       swap_endian: Whether to swap endianness (default: False)       
       double: Whether to use double precision (default: False)       
       silent: Whether to suppress printing messages (default: False)
@@ -45,18 +45,18 @@ def pic_mom_read_2d(data, nproc, nproc_i, nproc_j, fname, swap_endian=False, dou
   for ilist in range(0, len(flist), nproc):
     for irank in range(nproc):
       #print(flist[irank + ilist])
-      filename = flist[irank + ilist]   # 0000100_bx_rank=0000.dat,...
-      with open(filename, 'rb') as f:   # f = 0000100_bx_rank=0000.dat
+      filename = flist[irank + ilist]   # 0002000_ey_rank=0000.dat,...
+      with open(filename, 'rb') as f:   # f = 0002000_ey_rank=0000.dat
         if not silent:
           print('rank=', irank)
           print(ilist // nproc, 'Reading......', filename)
       
           #rank= 0
-          #0 Reading...... 0000100_bx_rank=0000.dat 
+          #0 Reading...... 0002000_ey_rank=0000.dat 
         
         domainfname = os.path.join(flist[irank + ilist].split('_')[0] + '_domain_rank=' + str(irank).zfill(4) + '.dat')
         # Read domain information
-        with open(domainfname,'rb') as domainf:   # domainf = 0000100_domain_rank=0000.dat
+        with open(domainfname,'rb') as domainf:   # domainf = 0002000_domain_rank=0000.dat
           tmp_b = domainf.read()                  #これはバイナリーデータ<class 'bytes'>
           
         #intリストにする
@@ -65,25 +65,26 @@ def pic_mom_read_2d(data, nproc, nproc_i, nproc_j, fname, swap_endian=False, dou
         tmp_list = tmp_str.split()
         tmp = [int(num) for num in tmp_list]
         nxg, nyg, nxs, nxe, nys, nye = tmp
-      #  tmp = [7007, 960, 0, 1166, 0, 239]     
+      #  tmp = [721, 96, 0, 95, 0, 31]     
 
       # Allocate data array (resize if needed)
         if irank == 0 and ilist == 0:                     #一番最初のループで全boxサイズのdata作る
             dtype = 'float64' if double else 'float32'      
-            data = np.zeros((nxg, nyg), dtype=dtype)   
-          # data.shape = (7007, 960)
+            data = np.zeros((nyg, nxg), dtype=dtype)   
+          # data.shape = (721, 96)
         
     # Read data chunk    
         tmp_rank = np.fromfile(f, dtype=dtype, count=(nxe - nxs + 1) * (nye - nys + 1) )  #irankのdomainサイズ
-        tmp_arr = tmp_rank.reshape((nxe - nxs + 1, nye - nys + 1),order='F')   
+        tmp_arr = tmp_rank.reshape((nxe - nxs + 1, nye - nys + 1),order='F') .T  
       
       # Store data chunk in main array
-      data[nxs:nxe+1, nys:nye+1] = tmp_arr
+      # data[nxs:nxe+1, nys:nye+1] = tmp_arr
+      data[nys:nye+1, nxs:nxe+1] = tmp_arr
       
         
     savedir ='../mom/'
     np.save(os.path.join(savedir+flist[irank + ilist].split('_')[0]+'_ey.npy'),data)
-    #np.savetxt('mom_bx.dat',data,delimiter=' ')
+    #np.savetxt('mom_ey.dat',data,delimiter=' ')
         
 
 def pic_mom_read(param1, param2, param3, param4, param5, swap_endian, double, silent):
@@ -96,4 +97,5 @@ def pic_mom_read(param1, param2, param3, param4, param5, swap_endian, double, si
 
 # Example usage (assuming param1 to param5 are appropriately defined arrays)
 
-pic_mom_read("_", 12, 4, 3, "0002000_ey_rank=*.dat",False, False,False)
+pic_mom_read("_", 12, 3, 4, "0002000_ey_rank=*.dat",False, False,False)
+
